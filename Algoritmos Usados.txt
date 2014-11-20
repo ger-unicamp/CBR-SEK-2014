@@ -1,3 +1,4 @@
+
 Todos os códigos tem a seguinte estrutura:
 ->Código master possui a rotina de translação do robô
 ->Possui uma protocolo de comunicação com o código slave
