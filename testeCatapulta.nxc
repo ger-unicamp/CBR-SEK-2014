@@ -1,0 +1,35 @@
+#define COLORSENSOR SENSOR_4
+
+task main(){
+//Le a cor da bola e aciona a catapulta
+SetSensorColorFull(S4);
+int inicio;
+Wait(200);
+inicio = COLORSENSOR;
+
+while(true)
+{
+NumOut(0,0,COLORSENSOR);
+Wait(200);
+
+  Wait(200);
+   if(COLORSENSOR > inicio)
+   {//A bola é laranja
+    Wait(100);
+    OnRev(OUT_A,100);
+    Wait(200);
+    OnRev(OUT_A,-100);
+    Wait(200);
+
+   }
+   else
+   {//A bola é azul
+   Wait(300);
+   OnRev(OUT_A,50);
+   Wait(500);
+   OnRev(OUT_A,-50);
+   Wait(500);
+   }//else
+}//for
+}//catapulta
+

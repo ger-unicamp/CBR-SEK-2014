@@ -1,0 +1,124 @@
+//SLAVE
+#define BT_CONN 1 //Canal de comunicação Bluetooth
+#define INBOX 5  //Canal de mensagens recebidas
+#define OUTBOX 1 //Canal de mensagens enviadas
+#define ROTACAO_DA_PA 30 //Angulo de rotação da pá
+#define COR_LARANJA 28  //Cor da Bola Laranja
+#define COR_AZUL 16 //Cor da Bola Azul
+#define COR_VAZIO 16 //Cor sem Bola
+#define COLORSENSOR SENSOR_4 //Sensor de Luz
+#define MSG_TRATOR_OK 1 //Mensagem a ser enviada para o Master
+#define MSG_CATAPULTA_OK 2
+#define MSG_AJUSTE_OK 3
+#define MSG_TRATOR 1 //Mensagem a ser recebida pelo o Slave
+#define MSG_CATAPULTA 2
+#define MSG_AJUSTE 3
+#define MSG_INICIAL_PA 4
+
+sub BTCheck(int conn){
+//Checa o pareamento BlueTooth
+if (!BluetoothStatus(conn)==NO_ERR){
+TextOut(5,LCD_LINE2,"Error");
+Wait(1000);
+Stop(true);
+}
+}
+
+void trator(){
+//Levanta a pa com as bolinhas
+     RotateMotor(OUT_BC, -30, 100);
+     Wait(1400);
+     RotateMotor(OUT_BC, 30, 100);
+}
+
+void pa_inicial(){
+//abaixa a pa incialmente
+         RotateMotor(OUT_BC, 20, 95);
+
+}
+
+void ajuste()
+{
+//Manda uma mensagem para o Master, para que faça a função ajuste
+        int in=0;
+        SendResponseNumber(OUTBOX,MSG_AJUSTE);
+        while(true){
+        ReceiveRemoteNumber(INBOX, true, in);
+        if(in==MSG_AJUSTE)
+        break;
+        }
+}
+
+void catapultaClass()
+{
+//Função da catapulta para a classificiatoria
+ //Existe Bola
+  Wait(300);
+  OnRev(OUT_A,100);
+  Wait(200);
+  OnRev(OUT_A,-100);
+  Wait(200);
+  ajuste();
+  OnRev(OUT_A,100);
+  Wait(200);
+  OnRev(OUT_A,-100);
+
+ }
+
+
+void catapulta(){
+//Le a cor da bola e aciona a catapulta
+for(int i = 0;i<2;i++)
+{
+   //if(true)
+   if(COLORSENSOR >= COR_LARANJA-5)
+   {//A bola é laranja
+    Wait(300);
+    OnRev(OUT_A,95);
+    Wait(200);
+    OnRev(OUT_A,-100);
+    Wait(200);
+
+   }
+   else
+   {//A bola é azul
+   Wait(300);
+   OnRev(OUT_A,50);
+   Wait(500);
+   OnRev(OUT_A,-100);
+   Wait(500);
+   }//else
+}//for
+}//catapulta
+
+
+task main(){
+     int in; //Mensagens
+     SetSensorColorRed(IN_4);
+     BTCheck(0); //check master connection
+      while(true){
+           in=0;
+          //Espera por uma mensagem do Master
+          ReceiveRemoteNumber(INBOX, true, in);
+                switch(in){
+                     case MSG_INICIAL_PA:
+                          pa_inicial();
+                          SendResponseNumber(OUTBOX, MSG_INICIAL_PA);
+                          break;
+
+                     case MSG_TRATOR:
+                          trator();
+                          SendResponseNumber(OUTBOX,MSG_TRATOR_OK);
+                          break;
+
+                      case MSG_CATAPULTA:
+                          //Aciona a catapulta
+                          catapulta();
+                          //catapultaClass();
+                          SendResponseNumber(OUTBOX,MSG_CATAPULTA_OK);
+                          break;
+
+
+        }
+     }
+}

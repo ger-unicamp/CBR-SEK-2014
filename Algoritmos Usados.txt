@@ -1,0 +1,20 @@
+Todos os códigos tem a seguinte estrutura:
+->Código master possui a rotina de translação do robô
+->Possui uma protocolo de comunicação com o código slave
+->Código slave controla a catapulta, trator e sensor de cor
+
+Primeiro Jogo
+testemaster
+Slave-pos-classificatoria
+
+Segundo Jogo
+Mdireito_old (Teste Master)
+Mesquerdo_old (Teste Master Invertido)
+Slave Proximo
+
+Segundo Jogo
+Mdireito_new (Teste Master)
+Mesquerdo_new (Teste Master Invertido)
+Slave Baixa Potencia   -> jogamos o azul com 50, foi mto alto, testamos com 490, foi mto baixo
+
+

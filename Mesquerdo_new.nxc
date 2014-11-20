@@ -1,0 +1,283 @@
+/*Código de Translação
+Ultima modificação em 18/10/14 por Henrique Amitay*/
+//Master
+
+#define BT_CONN 1 //Canal de comunicação Bluetooth
+#define INBOX 1 //Canal de mensagens recebidas
+#define OUTBOX 5 //Canal de mensagens enviadas
+#define LIMIAR 11 //Distancia dianteira em relação a parede
+#define ANGULO_CURVA 320 //Angulo que os motores devem girar para fazer uma curva
+#define DISTANCIA_HORIZONTAL 350 //Distancia percorrida entre colunas
+#define DISTANCIA_INICIAL 500
+#define DISTANCIA_TRASEIRA //Ré depois de pegar as bolas
+#define HORARIO true //Sentido de giro
+#define ANTIHORARIO false  //Sentido de giro
+#define FRENTE true //Sentido de Ajuste
+#define TRAS false //Sentido de AJuste
+#define VELOCIDADE 75  //Velocidade do robô ao caminhar
+#define MSG_TRATOR 1 //Mensagem a ser enviada para o Slave
+#define MSG_CATAPULTA 2
+#define MSG_AJUSTE 3
+#define MSG_INICIAL_PA 4
+
+sub BTCheck(int conn){
+//Checa comunicação Bluetooth
+    if (!BluetoothStatus(conn)==NO_ERR){
+       TextOut(5,LCD_LINE2,"Error");
+       Wait(1000);
+       Stop(true);
+                  }
+       }
+
+
+void giraRobo(bool Sentido){
+//Gira o Robo 90º em um sentido, true é horario, false é antihorario
+       if(!Sentido)
+       {
+       //Anti
+       RotateMotor(OUT_B, 80, ANGULO_CURVA-50);
+       }
+       else{
+       //Horario
+       RotateMotor(OUT_C, 80, ANGULO_CURVA-25);
+       }
+}
+
+void ajuste(bool Sentido){
+     if(Sentido)
+     RotateMotor(OUT_BC, 50, 160);
+     else
+     RotateMotor(OUT_BC, 50, -160);
+}
+
+
+void caminha(int limiar){
+//Anda no campo e dá ré para poder manobrar
+       Wait(200);
+       while(SensorUS(IN_4)>limiar){
+          OnFwd(OUT_BC,VELOCIDADE);
+       }
+       RotateMotor(OUT_BC,30,-75);
+}
+
+
+task main(){
+/*Inicialização dos Sensores*/
+SetSensorUltrasonic(IN_4); /*US Dianteiro*/
+BTCheck(BT_CONN); //Checa a conexão
+int in = 0;
+
+
+/*
+ //abaixa a pa inicialmente
+ SendRemoteNumber(BT_CONN, OUTBOX, MSG_INICIAL_PA);
+//Espera a pa descer
+                         while(true)
+                         {
+                         ReceiveRemoteNumber(INBOX, true, in);
+                         if(in==MSG_INICIAL_PA)
+                         break;
+                         }
+                         in = 0;
+*/
+
+/*loop Principal*/
+       while(true){
+            Wait(200);
+          //Inicialmente o Robo Caminha um pouco para a frente
+          RotateMotor(OUT_BC,100,DISTANCIA_INICIAL);
+          Wait(200);
+          while(true){
+
+                  Wait(200);
+                //Gira 90 no sentido antihorario
+                  giraRobo(ANTIHORARIO);
+                  Wait(200);
+                //IDA
+                //Robo percorre a arena
+                       caminha(12);
+                       Wait(200);
+                //Sobe o trator
+                       SendRemoteNumber(BT_CONN, OUTBOX, MSG_TRATOR);
+                //Espera o trator acabar de subir
+                         while(true)
+                         {
+                         ReceiveRemoteNumber(INBOX, true, in);
+                         if(in==MSG_TRATOR)
+                         break;
+                         }
+                //Reinicializamos in
+                        in = 0;
+                //Daremos uma ré
+                ajuste(TRAS);
+                //Giramos o robo 90º no sentido horario
+                 giraRobo(HORARIO);
+                 Wait(200);
+                 //Checamos se já estamos no fim da arena
+                if(SensorUS(IN_4) < LIMIAR)
+                break;
+                //                 Caminha para a frente
+                RotateMotor(OUT_BC,80,140);
+                          //Novamente gira 90º
+                          giraRobo(HORARIO);
+                          Wait(200);
+                //anda um pouco para frente
+                      RotateMotor(OUT_BC,75,DISTANCIA_HORIZONTAL);
+                      Wait(200);
+                //Acionamos a catapulta
+                          SendRemoteNumber(BT_CONN, OUTBOX, MSG_CATAPULTA)
+                //Esperamos a catapulta acabar de atirar
+                          while(true)
+                          {
+                               ReceiveRemoteNumber(INBOX, true, in);
+                                  if(in==MSG_CATAPULTA)
+                                      break;
+                                  if(in==MSG_AJUSTE){
+                                  ajuste(FRENTE);
+                                  Wait(200);
+                                  SendRemoteNumber(BT_CONN, OUTBOX, MSG_AJUSTE);
+                                  }
+                          }
+
+
+                //VOLTA
+                //Percorremos a arena
+                       caminha(12);
+                       Wait(200);
+                //Sobe o trator
+                       SendRemoteNumber(BT_CONN, OUTBOX, MSG_TRATOR);
+                //Espera o trator acabar de subir
+                       while(true)
+                       {
+                       ReceiveRemoteNumber(INBOX, true, in);
+                       if(in==MSG_TRATOR)
+                       break;
+                       }
+                //Reinicializamos in
+                        in = 0;
+                //Andamos para trás
+                ajuste(TRAS);
+                //Acionamos a catapulta
+                        SendRemoteNumber(BT_CONN, OUTBOX, MSG_CATAPULTA)
+                //Esperamos a catapulta acabar de atirar
+                        while(true)
+                        {
+                        ReceiveRemoteNumber(INBOX, true, in);
+                        if(in==MSG_CATAPULTA)
+                        break;
+                        else
+                        if(in==MSG_AJUSTE){
+                        //ajuste(TRAS);
+                        //Wait(200);
+                        SendRemoteNumber(BT_CONN, OUTBOX, MSG_AJUSTE);
+                        }
+                }
+                //Voltamos para a parede
+                Wait(200);
+                caminha(12);
+                RotateMotor(OUT_BC,40,-75);
+                giraRobo(ANTIHORARIO);
+                RotateMotor(OUT_BC,80,140);
+                //Checamos se já estamos no fim da arena
+                if(SensorUS(IN_4) < LIMIAR)
+                break;
+               }//while(sensor)
+
+              //Estamos no fim da arena
+              //Para isso checamos se estamos no fundo ou na frente da arena
+              giraRobo(ANTIHORARIO);
+              if(SensorUS(IN_4)<=LIMIAR+2)
+              {
+              //Estamos atras
+              //Daremos uma ré
+              ajuste(TRAS);
+              giraRobo(ANTIHORARIO);
+              giraRobo(ANTIHORARIO);
+              caminha(12);
+              giraRobo(HORARIO);
+              }else
+              //Estamos na Frente, nada deve ser feito
+              {
+              ajuste(TRAS);
+              giraRobo(ANTIHORARIO);
+              giraRobo(ANTIHORARIO);
+              }
+              //Andamos até o outro lado da arena
+              caminha(12);
+
+              //Talvez tenhamos alguma bola, checamos
+
+              //Sobe o trator
+                       SendRemoteNumber(BT_CONN, OUTBOX, MSG_TRATOR);
+                //Espera o trator acabar de subir
+                       while(true)
+                       {
+                       ReceiveRemoteNumber(INBOX, true, in);
+                       if(in==MSG_TRATOR)
+                       break;
+                       }
+                //Reinicializamos in
+                        in = 0;
+
+              //Virar no sentido horario
+              ajuste(TRAS);
+              giraRobo(HORARIO);
+
+              //Jogar quaisquer bolas que foram pegos no trajeto
+
+              //Acionamos a catapulta
+                        SendRemoteNumber(BT_CONN, OUTBOX, MSG_CATAPULTA)
+                //Esperamos a catapulta acabar de atirar
+                        while(true)
+                        {
+                        ReceiveRemoteNumber(INBOX, true, in);
+                        if(in==MSG_CATAPULTA)
+                        break;
+                        else
+                        if(in==MSG_AJUSTE){
+                        ajuste(TRAS);
+                        SendRemoteNumber(BT_CONN, OUTBOX, MSG_AJUSTE);
+                        }
+                }
+
+              //Voltar para posição inicial
+              caminha(12);
+
+              //Talvez tenhamos alguma bola, checamos
+
+              //Sobe o trator
+                       SendRemoteNumber(BT_CONN, OUTBOX, MSG_TRATOR);
+                //Espera o trator acabar de subir
+                       while(true)
+                       {
+                       ReceiveRemoteNumber(INBOX, true, in);
+                       if(in==MSG_TRATOR)
+                       break;
+                       }
+                //Reinicializamos in
+                        in = 0;
+
+              //Acionamos a catapulta
+                        SendRemoteNumber(BT_CONN, OUTBOX, MSG_CATAPULTA)
+                //Esperamos a catapulta acabar de atirar
+                        while(true)
+                        {
+                        ReceiveRemoteNumber(INBOX, true, in);
+                        if(in==MSG_CATAPULTA)
+                        break;
+                        else
+                        if(in==MSG_AJUSTE){
+                        ajuste(TRAS);
+                        SendRemoteNumber(BT_CONN, OUTBOX, MSG_AJUSTE);
+                        }
+                        }
+                        in=0;
+
+
+              ajuste(TRAS);
+              giraRobo(HORARIO);
+              //Reinicia o loop
+             }//while(true)
+         }//taskmain
+
+
